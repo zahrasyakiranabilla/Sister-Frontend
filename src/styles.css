@@ -1,15 +1,171 @@
-@import 'tailwindcss';
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap");
+
+@import "tailwindcss";
 
 body {
   margin: 0;
-  font-family:
-    -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu',
-    'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans",
+    "Droid Sans", "Helvetica Neue", "Poppin", sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 code {
-  font-family:
-    source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
+  font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New", monospace;
+}
+
+:root {
+  /* Updated color scheme to match design brief with lecturer dashboard colors */
+  --background: #ffffff;
+  --foreground: #374151;
+  --card: #ffffff;
+  --card-foreground: #374151;
+  --popover: #ffffff;
+  --popover-foreground: #374151;
+  --primary: #f72c5b;
+  --primary-foreground: #ffffff;
+  --secondary: #f8fafc;
+  --secondary-foreground: #374151;
+  --muted: #f1f5f9;
+  --muted-foreground: #64748b;
+  --accent: #e4f1ac;
+  --accent-foreground: #374151;
+  --destructive: #dc2626;
+  --destructive-foreground: #ffffff;
+  --border: #e2e8f0;
+  --input: #f8fafc;
+  --ring: rgba(247, 44, 91, 0.3);
+  --chart-1: #f72c5b;
+  --chart-2: #a7d477;
+  --chart-3: #ff748b;
+  --chart-4: #e4f1ac;
+  --chart-5: #64748b;
+  --radius: 0.75rem;
+  --sidebar: #fafafa;
+  --sidebar-foreground: #374151;
+  --sidebar-primary: #f72c5b;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #f1f5f9;
+  --sidebar-accent-foreground: #374151;
+  --sidebar-border: #e2e8f0;
+  --sidebar-ring: rgba(247, 44, 91, 0.3);
+
+  /* Added status colors for attendance */
+  --status-present: #a7d477;
+  --status-present-foreground: #ffffff;
+  --status-sick: #ff748b;
+  --status-sick-foreground: #ffffff;
+  --status-permission: #e4f1ac;
+  --status-permission-foreground: #374151;
+  --status-absent: #94a3b8;
+  --status-absent-foreground: #ffffff;
+}
+
+.dark {
+  --background: #0f172a;
+  --foreground: #f1f5f9;
+  --card: #1e293b;
+  --card-foreground: #f1f5f9;
+  --popover: #1e293b;
+  --popover-foreground: #f1f5f9;
+  --primary: #f72c5b;
+  --primary-foreground: #ffffff;
+  --secondary: #334155;
+  --secondary-foreground: #f1f5f9;
+  --muted: #475569;
+  --muted-foreground: #94a3b8;
+  --accent: #e4f1ac;
+  --accent-foreground: #0f172a;
+  --destructive: #dc2626;
+  --destructive-foreground: #ffffff;
+  --border: #334155;
+  --input: #334155;
+  --ring: rgba(247, 44, 91, 0.3);
+  --chart-1: #f72c5b;
+  --chart-2: #a7d477;
+  --chart-3: #ff748b;
+  --chart-4: #e4f1ac;
+  --chart-5: #94a3b8;
+  --sidebar: #1e293b;
+  --sidebar-foreground: #f1f5f9;
+  --sidebar-primary: #f72c5b;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #334155;
+  --sidebar-accent-foreground: #f1f5f9;
+  --sidebar-border: #334155;
+  --sidebar-ring: rgba(247, 44, 91, 0.3);
+
+  /* Dark mode status colors */
+  --status-present: #a7d477;
+  --status-present-foreground: #ffffff;
+  --status-sick: #ff748b;
+  --status-sick-foreground: #ffffff;
+  --status-permission: #e4f1ac;
+  --status-permission-foreground: #0f172a;
+  --status-absent: #64748b;
+  --status-absent-foreground: #ffffff;
+}
+
+/* Moved theme variables from @theme inline to :root for compatibility */
+/* Updated font configuration to use Poppins */
+:root {
+  --font-sans: var(--font-poppins);
+  --font-mono: var(--font-geist-mono);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  /* Added status color tokens */
+  --color-status-present: var(--status-present);
+  --color-status-present-foreground: var(--status-present-foreground);
+  --color-status-sick: var(--status-sick);
+  --color-status-sick-foreground: var(--status-sick-foreground);
+  --color-status-permission: var(--status-permission);
+  --color-status-permission-foreground: var(--status-permission-foreground);
+  --color-status-absent: var(--status-absent);
+  --color-status-absent-foreground: var(--status-absent-foreground);
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+    /* Removed outline styles that were causing red borders around all elements */
+  }
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+  }
 }

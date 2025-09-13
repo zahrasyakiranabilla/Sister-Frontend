@@ -9,8 +9,20 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as RiwayatRouteImport } from './routes/riwayat'
+import { Route as AbsensiRouteImport } from './routes/absensi'
 import { Route as IndexRouteImport } from './routes/index'
 
+const RiwayatRoute = RiwayatRouteImport.update({
+  id: '/riwayat',
+  path: '/riwayat',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AbsensiRoute = AbsensiRouteImport.update({
+  id: '/absensi',
+  path: '/absensi',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -19,28 +31,50 @@ const IndexRoute = IndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/absensi': typeof AbsensiRoute
+  '/riwayat': typeof RiwayatRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/absensi': typeof AbsensiRoute
+  '/riwayat': typeof RiwayatRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/absensi': typeof AbsensiRoute
+  '/riwayat': typeof RiwayatRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths: '/' | '/absensi' | '/riwayat'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to: '/' | '/absensi' | '/riwayat'
+  id: '__root__' | '/' | '/absensi' | '/riwayat'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AbsensiRoute: typeof AbsensiRoute
+  RiwayatRoute: typeof RiwayatRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/riwayat': {
+      id: '/riwayat'
+      path: '/riwayat'
+      fullPath: '/riwayat'
+      preLoaderRoute: typeof RiwayatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/absensi': {
+      id: '/absensi'
+      path: '/absensi'
+      fullPath: '/absensi'
+      preLoaderRoute: typeof AbsensiRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -53,6 +87,8 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AbsensiRoute: AbsensiRoute,
+  RiwayatRoute: RiwayatRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
