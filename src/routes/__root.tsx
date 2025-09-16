@@ -1,7 +1,20 @@
-import { createRootRoute, Link, Outlet } from '@tanstack/react-router'
-import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
+/// <reference types="vite/client" />
+
+import { Outlet,Link, createRootRoute } from '@tanstack/react-router'
+import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
+import { TanstackDevtools } from '@tanstack/react-devtools'
+import appCss from '../styles.css?url'
 
 export const Route = createRootRoute({
+  head: () => ({
+    links: [
+      {
+        rel: 'stylesheet',
+        href: appCss,
+      },
+    ],
+  }),
+
   component: () => (
     <>
       <div className='min-h-screen bg-white font-poppins'>
@@ -33,16 +46,6 @@ export const Route = createRootRoute({
                 >
                   Pengumpulan Tugas
                 </Link>
-                <Link
-                  to='/dashboard/nilai'
-                  className='px-4 py-2 rounded-lg text-gray-600 hover:text-primary-pink hover:bg-primary-pink/10 font-medium transition-all duration-200 font-poppins hover:scale-105 hover:shadow-sm'
-                  activeProps={{
-                    className:
-                      'text-primary-pink font-semibold bg-primary-pink/15 shadow-sm',
-                  }}
-                >
-                  Lihat Nilai
-                </Link>
               </div>
             </div>
             <div className='flex items-center space-x-4'>
@@ -59,9 +62,20 @@ export const Route = createRootRoute({
         {/* Main Content */}
         <main className='max-w-7xl mx-auto px-6 py-8 bg-white'>
           <Outlet />
+                             <TanstackDevtools
+              config={{
+                position: 'bottom-left',
+              }}
+              plugins={[
+                {
+                  name: 'Tanstack Router',
+                  render: <TanStackRouterDevtoolsPanel />,
+                },
+              ]}
+            />
+
         </main>
       </div>
-      <TanStackRouterDevtools />
     </>
   ),
 })

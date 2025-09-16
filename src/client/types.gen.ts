@@ -127,6 +127,20 @@ export type AddSubmissionResponse = {
     };
 };
 
+export type GetAllAssignmentStatusResponse = {
+    message?: string;
+    data?: Array<{
+        id?: number;
+        createdAt?: string;
+        updatedAt?: string;
+        deletedAt?: unknown;
+        nama?: string;
+        deskripsi?: string;
+        deadline?: string;
+        status?: string;
+    }>;
+};
+
 export type GetData = {
     body?: never;
     path?: never;
@@ -272,14 +286,14 @@ export type PostCreateAssignmentResponses = {
 
 export type PostCreateAssignmentResponse = PostCreateAssignmentResponses[keyof PostCreateAssignmentResponses];
 
-export type GetAssignmentData = {
+export type GetAssignmentsData = {
     body?: never;
     path?: never;
     query?: never;
-    url: '/assignment';
+    url: '/assignments';
 };
 
-export type GetAssignmentErrors = {
+export type GetAssignmentsErrors = {
     /**
      * Bad Request
      */
@@ -290,25 +304,14 @@ export type GetAssignmentErrors = {
     500: unknown;
 };
 
-export type GetAssignmentResponses = {
+export type GetAssignmentsResponses = {
     /**
      * Assignment created successfully.
      */
     200: GetAllAssignmentByNipResponse;
 };
 
-export type GetAssignmentResponse = GetAssignmentResponses[keyof GetAssignmentResponses];
-
-export type GetSubmissionData = {
-    body?: never;
-    path?: never;
-    query?: never;
-    url: '/submission';
-};
-
-export type GetSubmissionResponses = {
-    default: unknown;
-};
+export type GetAssignmentsResponse = GetAssignmentsResponses[keyof GetAssignmentsResponses];
 
 export type PostSubmissionData = {
     body: AddSubmissionRequest;
@@ -336,6 +339,22 @@ export type PostSubmissionResponses = {
 };
 
 export type PostSubmissionResponse = PostSubmissionResponses[keyof PostSubmissionResponses];
+
+export type GetStatusAssignmentsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/status/assignments';
+};
+
+export type GetStatusAssignmentsResponses = {
+    /**
+     * Submission created successfully.
+     */
+    200: GetAllAssignmentStatusResponse;
+};
+
+export type GetStatusAssignmentsResponse = GetStatusAssignmentsResponses[keyof GetStatusAssignmentsResponses];
 
 export type ClientOptions = {
     baseUrl: 'http://localhost:3001/api/v1' | (string & {});

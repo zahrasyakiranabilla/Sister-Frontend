@@ -3,7 +3,14 @@
 import type React from "react"
 
 import { createLazyFileRoute } from "@tanstack/react-router"
-import { useState } from "react"
+import { useState, useRef, useEffect } from "react"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
+import {
+  getStatusAssignmentsOptions,
+  getStatusAssignmentsQueryKey,
+  postSubmissionMutation,
+} from "../../client/@tanstack/react-query.gen"
+import { useMutation } from "@tanstack/react-query"
 
 export const Route = createLazyFileRoute("/dashboard/tugas")({
   component: TugasPage,
@@ -13,7 +20,6 @@ interface Assignment {
   id: string
   title: string
   course: string
-  lecturer: string
   deadline: string
   description: string
   status: "pending" | "submitted" | "late"
@@ -23,41 +29,129 @@ interface Assignment {
 function TugasPage() {
   const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(null)
   const [file, setFile] = useState<File | null>(null)
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submittedIds, setSubmittedIds] = useState<Set<string>>(new Set())
   const [comment, setComment] = useState("")
 
-  // Mock data for assignments
-  const assignments: Assignment[] = [
-    {
-      id: "1",
-      title: "Implementasi Algoritma Sorting",
-      course: "Algoritma dan Struktur Data",
-      lecturer: "Dr. Ahmad Wijaya",
-      deadline: "2024-01-15",
-      description:
-        "Implementasikan algoritma bubble sort, merge sort, dan quick sort dalam bahasa Java. Sertakan analisis kompleksitas waktu untuk masing-masing algoritma.",
-      status: "pending",
-    },
-    {
-      id: "2",
-      title: "Desain Database E-Commerce",
-      course: "Basis Data",
-      lecturer: "Prof. Siti Nurhaliza",
-      deadline: "2024-01-20",
-      description:
-        "Buat desain database untuk sistem e-commerce lengkap dengan ERD, normalisasi, dan implementasi SQL.",
-      status: "pending",
-    },
-    {
-      id: "3",
-      title: "Analisis Sistem Informasi",
-      course: "Rekayasa Perangkat Lunak",
-      lecturer: "Dr. Budi Santoso",
-      deadline: "2024-01-10",
-      description: "Lakukan analisis kebutuhan sistem informasi untuk kasus studi yang diberikan.",
-      status: "submitted",
-      submittedAt: "2024-01-08",
-    },
-  ]
+  const authToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjMsInJvbGUiOiJtYWhhc2lzd2EiLCJpYXQiOjE3NTc5OTk5MTIsImV4cCI6MTc1ODAwMDgxMn0.pMaY-aoECynf1b0wva2fsmt90iD3182fGp5_9eeQIMc'
+
+  const queryClient = useQueryClient()
+  const options = getStatusAssignmentsOptions({
+    headers: { Authorization: `Bearer ${authToken}` },
+  })
+
+  const { data, isLoading, isError, error, refetch, isFetching } = useQuery({
+  queryKey: getStatusAssignmentsQueryKey(),
+    queryFn: ({ signal }) =>
+      options.queryFn?.({
+  queryKey: getStatusAssignmentsQueryKey(),
+        signal,
+        client: queryClient,
+        meta: undefined,
+      }) ?? Promise.reject("queryFn tidak tersedia"),
+  })
+
+  // Debug: print raw API payload to help mapping fields
+  if (typeof window !== "undefined") {
+    console.debug("getStatusAssignments raw response:", data)
+  }
+
+  // Helper: cari field dengan beberapa kemungkinan nama
+  const getField = (obj: any, keys: string[]) => {
+    if (!obj) return undefined
+    for (const k of keys) {
+      if (obj[k] !== undefined && obj[k] !== null) return obj[k]
+    }
+    return undefined
+  }
+
+  const toDateOrUndefined = (val: any): Date | undefined => {
+    if (val === undefined || val === null || val === "") return undefined
+    const d = typeof val === "number" ? new Date(val) : new Date(String(val))
+    return isNaN(d.getTime()) ? undefined : d
+  }
+
+  const rawAssignments: any[] =
+    (data?.data as any)?.assignments ?? (data?.data as any) ?? (Array.isArray(data) ? data : [])
+
+  // Pemetaan data API -> shape yang dipakai UI mahasiswa
+  const assignments: Assignment[] = rawAssignments.map((a, idx) => {
+    const id = String(
+      getField(a, ["id", "_id", "slug", "uuid", "assignmentId"]) ?? idx
+    )
+
+    const title =
+      getField(a, ["nama", "name", "title"]) ?? "Tanpa Judul"
+
+    const course =
+      getField(a, ["course", "courseName", "mataKuliah", "kelas", "subject"]) ?? "-"
+
+    const lecturer =
+      getField(a, ["lecturer", "lecturerName", "dosen", "teacher"]) ?? "-"
+
+    const deadlineRaw =
+      getField(a, ["deadline", "dueDate", "due_date", "dueAt", "due", "deadlineAt", "due_at"])
+    const deadlineDate = toDateOrUndefined(deadlineRaw)
+    const deadline = deadlineDate ? deadlineDate.toISOString() : new Date().toISOString()
+
+    const description =
+      getField(a, [
+        "description",
+        "desc",
+        "keterangan",
+        "deskripsi",
+        "detail",
+        "details",
+        "body",
+      ]) ?? "-"
+
+    const submittedAtRaw = getField(a, ["submittedAt", "submitted_at", "turnedInAt"])
+    const submittedAtDate = toDateOrUndefined(submittedAtRaw)
+    const submittedAt = submittedAtDate ? submittedAtDate.toISOString() : undefined
+
+    // Prefer status provided by the API when available (e.g. 'submitted').
+    // Otherwise fall back to detecting submittedAt or deadline.
+    let apiStatus = getField(a, ["status", "assignmentStatus", "state"]) as string | undefined
+
+    // Normalize status text from API (e.g. "Submitted" -> "submitted")
+    if (apiStatus && typeof apiStatus === "string") {
+      apiStatus = apiStatus.trim().toLowerCase()
+    }
+
+    const allowedStatuses = new Set(["pending", "submitted", "late"])
+    let status: Assignment["status"] = "pending"
+
+    if (apiStatus && allowedStatuses.has(apiStatus)) {
+      status = apiStatus as Assignment["status"]
+    } else {
+      if (submittedAt) {
+        status = "submitted"
+      } else if (deadlineDate && deadlineDate.getTime() < Date.now()) {
+        status = "late"
+      }
+    }
+
+    return {
+      id,
+      title,
+      course,
+      lecturer,
+      deadline,
+      description,
+      status,
+      submittedAt,
+    }
+  })
+
+  // Keep a set of assignment ids that are already submitted (sync from server)
+  useEffect(() => {
+    const s = new Set<string>()
+    for (const asg of assignments) {
+      if (asg.status === "submitted") s.add(asg.id)
+    }
+    setSubmittedIds(s)
+  }, [assignments])
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -65,24 +159,69 @@ function TugasPage() {
     }
   }
 
+  const submissionMutation = useMutation({
+    ...postSubmissionMutation(),
+    onSuccess: (res) => {
+      console.log("Upload successful:", res)
+      // Optimistic UI update: mark the currently selected assignment as submitted
+      setSelectedAssignment((prev) =>
+        prev
+          ? {
+              ...prev,
+              status: "submitted",
+              submittedAt: new Date().toISOString(),
+            }
+          : prev
+      )
+
+      // Add to submittedIds to prevent further uploads client-side
+      if (selectedAssignment) {
+        setSubmittedIds((prev) => new Set(prev).add(selectedAssignment.id))
+      }
+
+      // Force refetch to get authoritative fresh data from server
+      try {
+        refetch()
+      } catch (e) {
+        // ignore
+      }
+
+      alert("Tugas berhasil dikumpulkan!")
+      // reset form fields (keep selectedAssignment updated above so details show submitted)
+      setFile(null)
+      setComment("")
+      setIsSubmitting(false)
+    },
+    onError: (err) => {
+      console.error("Upload failed:", err)
+      setIsSubmitting(false)
+    },
+  })
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!selectedAssignment || !file) return
+    if (!selectedAssignment) return
+    if (submittedIds.has(selectedAssignment.id)) {
+      // already submitted — prevent reupload
+      alert("Tugas ini sudah dikumpulkan dan tidak dapat dikumpulkan lagi.")
+      return
+    }
 
-    // Here you would typically upload the file and submit the assignment
-    console.log("Submitting assignment:", {
-      assignmentId: selectedAssignment.id,
-      file: file.name,
-      comment,
-    })
+    // Prefer file from input ref (matches `upload.tsx` concept), fallback to state
+    const selectedFile = fileInputRef.current?.files?.[0] ?? file
+    if (!selectedFile) return
 
-    // Reset form
-    setFile(null)
-    setComment("")
-    setSelectedAssignment(null)
-
-    // Show success message (in real app, you'd handle this properly)
-    alert("Tugas berhasil dikumpulkan!")
+    // prepare body as required by generated SDK (form-data handled by serializer)
+    const tugasIdNum = Number(selectedAssignment.id)
+    setIsSubmitting(true)
+    submissionMutation.mutate({
+      headers: { Authorization: `Bearer ${authToken}` },
+      body: {
+        file: selectedFile,
+        // Generated SDK expects `tugasId: number` so provide a numeric value.
+        tugasId: isNaN(tugasIdNum) ? 0 : tugasIdNum,
+      },
+  })
   }
 
   const getStatusColor = (status: string) => {
@@ -111,6 +250,24 @@ function TugasPage() {
     }
   }
 
+  if (isLoading) {
+    return (
+      <div className="space-y-6 bg-white font-poppins">
+        <div className="text-gray-600">Memuat daftar tugas...</div>
+      </div>
+    )
+  }
+
+  if (isError) {
+    return (
+      <div className="space-y-6 bg-white font-poppins">
+        <div className="text-red-600">
+          Gagal memuat daftar tugas: {error instanceof Error ? error.message : "Unknown error"}
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6 bg-white font-poppins">
       {/* Header */}
@@ -126,6 +283,10 @@ function TugasPage() {
         <div className="lg:col-span-2 space-y-4">
           <h2 className="text-xl font-semibold text-gray-900 font-poppins">Daftar Tugas</h2>
 
+          {assignments.length === 0 && (
+            <div className="text-gray-500 text-sm">Belum ada tugas.</div>
+          )}
+
           {assignments.map((assignment) => (
             <div
               key={assignment.id}
@@ -139,8 +300,6 @@ function TugasPage() {
               <div className="flex items-start justify-between mb-3">
                 <div className="flex-1">
                   <h3 className="text-lg font-semibold text-gray-900 mb-1 font-poppins">{assignment.title}</h3>
-                  <p className="text-sm text-gray-600 mb-2 font-poppins">{assignment.course}</p>
-                  <p className="text-sm text-gray-500 font-poppins font-light">Dosen: {assignment.lecturer}</p>
                 </div>
                 <span className={`px-3 py-1 rounded-full text-xs font-medium font-poppins ${getStatusColor(assignment.status)}`}>
                   {getStatusText(assignment.status)}
@@ -176,11 +335,6 @@ function TugasPage() {
                   </div>
 
                   <div>
-                    <label className="text-sm font-medium text-gray-600">Mata Kuliah</label>
-                    <p className="text-gray-900">{selectedAssignment.course}</p>
-                  </div>
-
-                  <div>
                     <label className="text-sm font-medium text-gray-600">Deskripsi</label>
                     <p className="text-gray-700 text-sm leading-relaxed">{selectedAssignment.description}</p>
                   </div>
@@ -195,7 +349,7 @@ function TugasPage() {
               </div>
 
               {/* Submission Form */}
-              {selectedAssignment.status === "pending" && (
+              {selectedAssignment.status === "pending" && !submittedIds.has(selectedAssignment.id) && (
                 <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
                   <h3 className="text-lg font-semibold text-gray-900 mb-4 font-poppins">Kumpulkan Tugas</h3>
 
@@ -205,6 +359,7 @@ function TugasPage() {
                       <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-primary-pink transition-colors">
                         <input
                           type="file"
+                          ref={fileInputRef}
                           onChange={handleFileChange}
                           className="hidden"
                           id="file-upload"
@@ -243,10 +398,10 @@ function TugasPage() {
 
                     <button
                       type="submit"
-                      disabled={!file}
+                      disabled={!file || isSubmitting}
                       className="w-full bg-primary-pink text-white py-3 px-4 rounded-lg font-medium hover:bg-secondary-pink disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors font-poppins"
                     >
-                      Kumpulkan Tugas
+                      {isSubmitting ? "Mengunggah..." : "Kumpulkan Tugas"}
                     </button>
                   </form>
                 </div>
