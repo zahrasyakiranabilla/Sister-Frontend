@@ -1,10 +1,55 @@
 import { createFileRoute } from "@tanstack/react-router"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { getStatusAssignmentsOptions, getStatusAssignmentsQueryKey } from "@/client/@tanstack/react-query.gen"
 
 export const Route = createFileRoute("/dashboard/")({
   component: Dashboard,
 })
 
 function Dashboard() {
+  const token = process.env.NODE_ENV === 'production' ? '' : 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjMsInJvbGUiOiJtYWhhc2lzd2EiLCJpYXQiOjE3NTgwMzg2OTgsImV4cCI6MTc1ODAzOTU5OH0.bpDaIGBDHnTJc1aNql1NTvPQjnlYjJwRzDR1iMuy3Fk'
+
+  const queryClient = useQueryClient()
+  const options = getStatusAssignmentsOptions({ headers: { Authorization: token } })
+
+  const { data } = useQuery({
+    queryKey: getStatusAssignmentsQueryKey(),
+    queryFn: ({ signal }) =>
+      options.queryFn?.({ queryKey: getStatusAssignmentsQueryKey(), signal, client: queryClient, meta: undefined }) ?? Promise.reject('queryFn tidak tersedia'),
+  })
+
+  const raw: any[] = (data?.data as any) ?? []
+
+  type Assignment = {
+    id?: number | string
+    nama?: string
+    deskripsi?: string
+    deadline?: string
+    status?: string
+    updatedAt?: string
+  }
+
+  const assignments: Assignment[] = raw.map((a) => ({
+    id: a.id ?? a._id ?? a.assignmentId,
+    nama: a.nama ?? a.title ?? a.name,
+    deskripsi: a.deskripsi ?? a.description,
+    deadline: a.deadline ?? a.dueDate,
+    status: a.status ?? undefined,
+    updatedAt: a.updatedAt ?? a.updated_at ?? a.updated ?? a.submittedAt ?? a.deadline,
+  }))
+
+  const aktivitasTerbaru = assignments
+    .slice()
+    .sort((a, b) => {
+      const at = a.updatedAt ? Date.parse(a.updatedAt) : 0
+      const bt = b.updatedAt ? Date.parse(b.updatedAt) : 0
+      return bt - at
+    })
+    .slice(0, 5)
+
+  const totalTugas = assignments.length
+  const tugasSelesai = assignments.filter((t) => t.status === 'submitted').length
+
   return (
     <div className="space-y-8 bg-white font-poppins">
       {/* Welcome Section */}
@@ -14,12 +59,12 @@ function Dashboard() {
       </div>
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="bg-gradient-to-br from-red-50 to-pink-50 rounded-xl border border-red-100 p-6 shadow-sm hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600 font-poppins">Tugas Aktif</p>
-              <p className="text-3xl font-bold text-primary-pink font-poppins">5</p>
+            <p className="text-3xl font-bold text-primary-pink font-poppins">{totalTugas}</p>
             </div>
             <div className="w-12 h-12 bg-primary-pink/10 rounded-lg flex items-center justify-center">
               <svg className="w-6 h-6 text-primary-pink" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -38,7 +83,7 @@ function Dashboard() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600 font-poppins">Tugas Selesai</p>
-              <p className="text-3xl font-bold text-accent-green font-poppins">12</p>
+              <p className="text-3xl font-bold text-accent-green font-poppins">{tugasSelesai}</p>
             </div>
             <div className="w-12 h-12 bg-accent-green/10 rounded-lg flex items-center justify-center">
               <svg className="w-6 h-6 text-accent-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -52,43 +97,30 @@ function Dashboard() {
             </div>
           </div>
         </div>
-
-        <div className="bg-gradient-to-br from-orange-50 to-amber-50 rounded-xl border border-orange-100 p-6 shadow-sm hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600 font-poppins">Rata-rata Nilai</p>
-              <p className="text-3xl font-bold text-secondary-pink font-poppins">85.5</p>
-            </div>
-            <div className="w-12 h-12 bg-secondary-pink/10 rounded-lg flex items-center justify-center">
-              <svg className="w-6 h-6 text-secondary-pink" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-              </svg>
-            </div>
-          </div>
-        </div>
       </div>
 
       {/* Recent Activities */}
       <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-100 p-6 shadow-sm">
         <h3 className="text-xl font-semibold text-gray-900 mb-4 font-poppins">Aktivitas Terbaru</h3>
         <div className="space-y-4">
-          <div className="flex items-center space-x-4 p-4 bg-green-100/50 rounded-lg hover:bg-green-100/70 transition-colors">
-            <div className="w-2 h-2 bg-accent-green rounded-full"></div>
-            <div className="flex-1">
-              <p className="font-medium text-gray-900 font-poppins">Tugas Algoritma dan Struktur Data</p>
-              <p className="text-sm text-gray-600 font-poppins font-light">Dikumpulkan 2 hari yang lalu</p>
-            </div>
-            <span className="text-sm font-medium text-accent-green font-poppins">Selesai</span>
-          </div>
-
-          <div className="flex items-center space-x-4 p-4 bg-pink-100/50 rounded-lg hover:bg-pink-100/70 transition-colors">
-            <div className="w-2 h-2 bg-primary-pink rounded-full"></div>
-            <div className="flex-1">
-              <p className="font-medium text-gray-900 font-poppins">Tugas Basis Data</p>
-              <p className="text-sm text-gray-600 font-poppins font-light">Deadline: 3 hari lagi</p>
-            </div>
-            <span className="text-sm font-medium text-primary-pink font-poppins">Pending</span>
-          </div>
+          {aktivitasTerbaru.length > 0 ? (
+            aktivitasTerbaru.map((tugas) => (
+              <div key={String(tugas.id)} className="flex items-center space-x-4 p-4 rounded-lg hover:shadow-sm transition-colors bg-white">
+                <div className={`w-2 h-2 rounded-full ${tugas.status === 'submitted' ? 'bg-accent-green' : 'bg-primary-pink'}`}></div>
+                <div className="flex-1">
+                  <p className="font-medium text-gray-900 font-poppins">{tugas.nama}</p>
+                  <p className="text-sm text-gray-600 font-poppins font-light">
+                    {tugas.status === 'submitted' ? 'Dikumpulkan baru-baru ini' : `Deadline: ${tugas.deadline ? new Date(tugas.deadline).toLocaleDateString() : '-'}`}
+                  </p>
+                </div>
+                <span className={`text-sm font-medium ${tugas.status === 'submitted' ? 'text-accent-green' : 'text-primary-pink'} font-poppins`}>
+                  {tugas.status === 'submitted' ? 'Selesai' : 'Pending'}
+                </span>
+              </div>
+            ))
+          ) : (
+            <p className="text-gray-500">Belum ada aktivitas terbaru</p>
+          )}
         </div>
       </div>
     </div>
